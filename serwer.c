@@ -1,0 +1,78 @@
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <strings.h>
+#include <arpa/inet.h>
+#include <string.h>
+#include <time.h>
+
+int main() {
+	socklen_t addrlen;
+	time_t time_buf;
+	int sockfd;
+	struct sockaddr_in srv_addr;
+	struct sockaddr_in cli_addr;
+	char buf[255];
+
+	/* Tworzenie gniazda */
+	if((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+		perror("Wystąpił błąd podczas tworzenia gniazda");
+		exit(1);
+	}
+
+	bzero(&sa, sizeof(sa));
+	sa.sin_family = AF_INET;
+	sa.sin_addr.s_addr = htonl(INADDR_ANY);
+	sa.sin_port = htons(8796);
+	
+	addrlen = sizeof(cli_addr);	
+
+	/* Poczepianie gniazad pod port */
+	if(bind(sockfd, (struct sockaddr *)&sa, sizeof(sa)) < 0) {
+		perror("Wystąpił błąd podczas podczepiania gniazda do portu");
+		exit(1);
+	}
+
+	/* Główna pętla */
+	while(1) {
+		bzero(&buf, sizeof(char)*255);
+		
+		/* Odbieranie wiadomości */
+		if(recvfrom(sockfd, buf, sizeof(char)*255, 0, (struct sockaddr *)&cli_addr, &addrlen) < 0) {
+			perror("Wystąpił błąd podczas odbierania wiadomości");
+			exit(1);
+		}
+
+		
+
+		if(strcmp(buf, "czas") == 0) {
+			bzero(&time_buf, sizeof(time_t));
+			
+			/* Pobieranie czasu */
+			if((time_buf = time()) < 0) {
+				perror("Wystąpił błąd podczas pobierania czasu");
+				exit(1);
+			}
+
+			/* Wysyłanie wiadomości zwrotnej zawierającej czas serwera */
+			if(sendto(sockfd, &time_buf, sizeof(time_t), 0, (struct sockaddr *)&cli_addr, addrlen) < 0) {
+				perror("Wystąpił błąd podczas wysyłania wiadomości zwrotnej");
+				exit(1);
+			}
+		} 
+
+		else {
+			bzero(buf, sizeof(char)*255);
+			strcpy(buf, "błąd zapytania");
+
+			/* Wysyłanie wiadomości zwrotnej zawierającej komunikat o błądnym zapytaniu */
+			if(sendto(sockfd, buf, sizeof(char)*255, 0, (struct sockaddr *)&cli_addr, addrlen) < 0) {
+				perror("Wystąpił błąd podczas wysłania wiadomości zwrotnej");
+				exit(1);
+			}	
+		}
+	}
+
+	return 0;
+}
