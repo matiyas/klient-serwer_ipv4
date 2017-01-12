@@ -21,15 +21,15 @@ int main() {
 		exit(1);
 	}
 
-	bzero(&sa, sizeof(sa));
-	sa.sin_family = AF_INET;
-	sa.sin_addr.s_addr = htonl(INADDR_ANY);
-	sa.sin_port = htons(8796);
+	bzero(&srv_addr, sizeof(srv_addr));
+	srv_addr.sin_family = AF_INET;
+	srv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+	srv_addr.sin_port = htons(8796);
 	
 	addrlen = sizeof(cli_addr);	
 
 	/* Poczepianie gniazad pod port */
-	if(bind(sockfd, (struct sockaddr *)&sa, sizeof(sa)) < 0) {
+	if(bind(sockfd, (struct sockaddr *)&srv_addr, sizeof(srv_addr)) < 0) {
 		perror("Wystąpił błąd podczas podczepiania gniazda do portu");
 		exit(1);
 	}
@@ -50,7 +50,7 @@ int main() {
 			bzero(&time_buf, sizeof(time_t));
 			
 			/* Pobieranie czasu */
-			if((time_buf = time()) < 0) {
+			if((time_buf = time(NULL)) < 0) {
 				perror("Wystąpił błąd podczas pobierania czasu");
 				exit(1);
 			}
