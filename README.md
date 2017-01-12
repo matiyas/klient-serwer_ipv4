@@ -3,6 +3,7 @@ Serwer:
 oczekuje na połączenia UDP na porcie 8796,
 jeśli otrzyma od klienta komunikat tekstowy "czas" wysyła (tekstowo) informacje o bieżącym czasie systemowym,
 w przeciwnym wypadku wysyła komunikat "blad zapytania".
+
 Klient:
 
 wymaga jednego parametru określającego adres IPv4 serwera (np. pętla zwrotna: 127.0.0.1),
