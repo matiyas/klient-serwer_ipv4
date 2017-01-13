@@ -9,11 +9,11 @@
 
 int main() {
 	socklen_t addrlen;
-	time_t time_buf;
 	int sockfd;
 	struct sockaddr_in srv_addr;
 	struct sockaddr_in cli_addr;
 	char buf[255];
+	time_t time_buf;
 
 	/* Tworzenie gniazda */
 	if((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
@@ -44,33 +44,27 @@ int main() {
 			exit(1);
 		}
 
-		
-
 		if(strcmp(buf, "czas") == 0) {
+			bzero(buf, sizeof(char)*255);
 			bzero(&time_buf, sizeof(time_t));
 			
-			/* Pobieranie czasu */
 			if((time_buf = time(NULL)) < 0) {
-				perror("Wystąpił błąd podczas pobierania czasu");
+				perror("Wystąpił błąd podczas pobieranie czasu");
 				exit(1);
 			}
 
-			/* Wysyłanie wiadomości zwrotnej zawierającej czas serwera */
-			if(sendto(sockfd, &time_buf, sizeof(time_t), 0, (struct sockaddr *)&cli_addr, addrlen) < 0) {
-				perror("Wystąpił błąd podczas wysyłania wiadomości zwrotnej");
-				exit(1);
-			}
+			strcpy(buf, ctime(&time_buf));
 		} 
 
 		else {
 			bzero(buf, sizeof(char)*255);
 			strcpy(buf, "błąd zapytania");
-
-			/* Wysyłanie wiadomości zwrotnej zawierającej komunikat o błądnym zapytaniu */
-			if(sendto(sockfd, buf, sizeof(char)*255, 0, (struct sockaddr *)&cli_addr, addrlen) < 0) {
+		}
+		
+		/* Wysyłanie wiadomości zwrotnej zawierającej komunikat o błądnym zapytaniu */
+		if(sendto(sockfd, buf, sizeof(char)*(strlen(buf)+1), 0, (struct sockaddr *)&cli_addr, addrlen) < 0) {
 				perror("Wystąpił błąd podczas wysłania wiadomości zwrotnej");
 				exit(1);
-			}	
 		}
 	}
 
