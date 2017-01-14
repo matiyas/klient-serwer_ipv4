@@ -50,37 +50,36 @@ int main(int argc, char **argv) {
 		}
 	}
 
-	/* Główna pętla */
-	while(1) {
-		bzero(buf, sizeof(char)*255);
-		scanf("%s", buf);
+	bzero(buf, sizeof(char)*255);
+	printf("Treść wiadomości: ");
+	scanf("%s", buf);
 		
-		/* TCP: Wysyłanie wiadomości */
-		if(tcp)	write(sockfd, buf, sizeof(char)*(strlen(buf)+1));
+	/* TCP: Wysyłanie wiadomości */
+	if(tcp)	write(sockfd, buf, sizeof(char)*(strlen(buf)+1));
 
-		/* UDP: Wysyłanie wiadomości */
-		if(udp) {
-			if(sendto(sockfd, buf, sizeof(char)*(strlen(buf)+1), 0, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
-				perror("Wystąpił błąd podczas wysyłania wiadomości");
-				exit(1);
-			}
+	/* UDP: Wysyłanie wiadomości */
+	if(udp) {
+		if(sendto(sockfd, buf, sizeof(char)*(strlen(buf)+1), 0, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
+			perror("Wystąpił błąd podczas wysyłania wiadomości");
+			exit(1);
 		}
-
-		bzero(buf, sizeof(char)*255);
-
-		/* TCP: Odbieranie wiadomości zwrotnej od serwera */
-		if(tcp) read(sockfd, buf, sizeof(char)*255);
-
-		/* UDP: Odbieranie wiadomości zwrotnej od serwera */
-		if(udp) {
-			if(recv(sockfd, buf, sizeof(char)*255, 0) < 0) {
-				perror("Wystąpił błąd podczas odbierania wiadomości");
-				exit(1);
-			}
-		}
-
-		printf("%s\n", buf);
 	}
 
+	bzero(buf, sizeof(char)*255);
+
+	/* TCP: Odbieranie wiadomości zwrotnej od serwera */
+	if(tcp) read(sockfd, buf, sizeof(char)*255);
+
+	/* UDP: Odbieranie wiadomości zwrotnej od serwera */
+	if(udp) {
+		if(recv(sockfd, buf, sizeof(char)*255, 0) < 0) {
+			perror("Wystąpił błąd podczas odbierania wiadomości");
+			exit(1);
+		}
+	}
+
+	printf("%s", buf);
+	
+	close(sockfd);
 	return 0;
 }
