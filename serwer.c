@@ -64,15 +64,17 @@ int main() {
 			close(1);
 			close(2);
 
+			/* Po zamknięciu standartowych deskryptorów na ekran nie 
+			   będą wyświetlane komunikaty o wystąpieniu błędu. */
+
 			/* Tworzenie gniazda dla UDP */
 			if((fd_udp = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-				perror("Wystąpił błąd podczas tworzenia gniazda dla protokołu UDP");
 				exit(1);
 			}
 
 			/* Tworzenie gniazda dla TCP */
 			if((fd_tcp = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-				perror("Wystąpił błąd podczas tworzenia gniazda dla protokołu TCP");
+				close(fd_udp);
 				exit(1);
 			}
 
@@ -84,12 +86,14 @@ int main() {
 	
 			/* Poczepianie gniazd pod port */
 			if(bind(fd_udp, (struct sockaddr *)&srv_addr, addrlen) < 0) {
-				perror("Wystąpił błąd podczas podczepiania gniazda do portu");
+				close(fd_udp);
+				close(fd_tcp);
 				exit(1);
 			}
 			
 			if(bind(fd_tcp, (struct sockaddr *)&srv_addr, addrlen) < 0) {
-				perror("Wystąpił błąd podczas podczepiania gniazda do portu");
+				close(fd_udp);
+				close(fd_tcp);
 				exit(1);
 			}
 
@@ -97,7 +101,8 @@ int main() {
 
 			/* Nasłuchiwanie wiadomości */
 			if(listen(fd_tcp, 0) < 0) {
-				perror("Wystąpił błąd podczas nasłuchiwania");
+				close(fd_udp);
+				close(fd_tcp);
 				exit(1);
 			}
 			
@@ -115,26 +120,33 @@ int main() {
 				
 				/* Monitorowanie deskryptorów */
 				if(select(maxfd, &readfds, NULL, NULL, NULL) < 0) {
-					perror("Wystąpił błąd podczas sprawdzania deskryptorów do odczytu");
+					close(fd_udp);
+					close(fd_tcp);
+					close(connfd);
 					exit(1);
 				}
 
 				/* UDP: Odbieranie wiadomości */
 				if(FD_ISSET(fd_udp, &readfds)) {
 					if(recvfrom(fd_udp, buf_rec, sizeof(char)*255, 0, (struct sockaddr *)&cli_addr, &addrlen) < 0) {
-						perror("Wystąpił błąd podczas odbierania wiadomości");
+						close(fd_udp);
+						close(fd_tcp);
+						close(connfd);
 						exit(1);
 					}
 				}
 				
 				if(FD_ISSET(fd_tcp, &readfds)) {
 					if((connfd = accept(fd_tcp, (struct sockaddr *)&srv_addr, &addrlen)) < 0) {
-						perror("Wystąpił błąd podczas akceptowania połączenia");
+						close(fd_udp);
+						close(fd_tcp);
 						exit(1);
 					}
 
 					if(recv(connfd, buf_rec, sizeof(char)*255, 0) < 0) {
-						perror("Wystąpił błąd podczas odbierania wiadomości");
+						close(fd_udp);
+						close(fd_tcp);
+						close(connfd);
 						exit(1);
 					}					
 				}
@@ -142,7 +154,9 @@ int main() {
 				/* Pobieranie czasu serwera lub komunikatu o błędnym zapytaniu */
 				if(strcmp(buf_rec, "czas") == 0) {
 					if((time_buf = time(NULL)) < 0) {
-						perror("Wystąpił błąd podczas pobieranie czasu");
+						close(fd_udp);
+						close(fd_tcp);
+						close(connfd);
 						exit(1);
 					}
 					strcpy(buf_snd, ctime(&time_buf));
@@ -155,16 +169,22 @@ int main() {
 				if(FD_ISSET(fd_udp, &readfds)) {
 					if(sendto(fd_udp, buf_snd, sizeof(char)*(strlen(buf_snd)+1), 0,
 							 (struct sockaddr *)&cli_addr, addrlen) < 0) {
-						perror("Wystąpił błąd podczas wysłania wiadomości zwrotnej");
+						close(fd_udp);
+						close(fd_tcp);
+						close(connfd);
 						exit(1);
 					}
 				}
 
+				/* TCP: Wysyłanie wiadomości zwrotnej */
 				if(FD_ISSET(fd_tcp, &readfds)) {
 					if(send(connfd, buf_snd, sizeof(char)*255, 0) < 0) {
-						perror("Wystąpił błąd podczas wywsyłania wiadomości");
+						close(fd_udp);
+						close(fd_tcp);
+						close(connfd);
 						exit(1);
 					}
+				close(connfd);
 				}
 			}
 

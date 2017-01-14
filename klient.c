@@ -19,8 +19,8 @@ int main(int argc, char **argv) {
 	}
 
 	/* Sprawdzanie opcji protokołu komunikacyjnego */
-		 if(strcmp(argv[1], "-t") == 0) tcp = 1;
-	else if(strcmp(argv[1], "-u") == 0) udp = 1;
+		 if(strcmp(argv[2], "-t") == 0) tcp = 1;
+	else if(strcmp(argv[2], "-u") == 0) udp = 1;
 	else {
 		printf("Podano błędną opcję.\nPodaj -t dla TCP lub -u dla UDP\n");
 		exit(1);
@@ -39,28 +39,36 @@ int main(int argc, char **argv) {
 	/* Ustalanie adresu serwera */
 	bzero(&addr, sizeof(addr));
 	addr.sin_family = AF_INET;
-	addr.sin_addr.s_addr = inet_addr(argv[2]);
+	addr.sin_addr.s_addr = inet_addr(argv[1]);
 	addr.sin_port = htons(8796);
 	
 	/* Dla TCP: nawiązywanie połączenia z serwerem */
 	if(tcp) {
 		if(connect(sockfd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
 			perror("Wystąpił błąd podczas nawiązywania połączenia z serwerem");
+			close(sockfd);
 			exit(1);
 		}
 	}
 
-	bzero(buf, sizeof(char)*255);
-	printf("Treść wiadomości: ");
+	/* Pobieranie od użytkownika treści zapytania */
+	printf("Podaj treść zapytania: ");
 	scanf("%s", buf);
 		
 	/* TCP: Wysyłanie wiadomości */
-	if(tcp)	write(sockfd, buf, sizeof(char)*(strlen(buf)+1));
+	if(tcp) {
+		if(write(sockfd, buf, sizeof(char)*(strlen(buf)+1)) < 0) {
+			perror("Wystąpił błąd podczas wysyłania wiadomoci");
+			close(sockfd);
+			exit(1);
+		}
+	}
 
 	/* UDP: Wysyłanie wiadomości */
 	if(udp) {
 		if(sendto(sockfd, buf, sizeof(char)*(strlen(buf)+1), 0, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
 			perror("Wystąpił błąd podczas wysyłania wiadomości");
+			close(sockfd);
 			exit(1);
 		}
 	}
@@ -68,16 +76,24 @@ int main(int argc, char **argv) {
 	bzero(buf, sizeof(char)*255);
 
 	/* TCP: Odbieranie wiadomości zwrotnej od serwera */
-	if(tcp) read(sockfd, buf, sizeof(char)*255);
+	if(tcp) {
+	 	if(read(sockfd, buf, sizeof(char)*255) < 0) {
+			perror("Wystąpił błąd podczas odczytywania wiadomości");
+			close(sockfd);
+			exit(1);
+		}
+	}
 
 	/* UDP: Odbieranie wiadomości zwrotnej od serwera */
 	if(udp) {
 		if(recv(sockfd, buf, sizeof(char)*255, 0) < 0) {
 			perror("Wystąpił błąd podczas odbierania wiadomości");
+			close(sockfd);
 			exit(1);
 		}
 	}
 
+	/* Drukowanie wiadomości zwrotnej */
 	printf("%s", buf);
 	
 	close(sockfd);
